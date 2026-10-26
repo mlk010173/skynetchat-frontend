@@ -3,7 +3,7 @@
 Espelho estático e documentação completa do frontend de **https://skynetchat.net/** (versão 4.5).
 
 Site oficial: https://skynetchat.net/
-GitHub Pages (espelho): veja a URL do Pages deste repositório.
+GitHub Pages (espelho): https://mlk010173.github.io/skynetchat-frontend/
 
 ## O que está neste repositório
 
