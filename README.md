@@ -34,3 +34,7 @@ O espelho serve para visualizar o design, layout, animações e estrutura do fro
 ## Como foi capturado
 
 Navegação real no Chromium (passando pelo desafio Cloudflare), extração do DOM de cada rota, download dos bundles JS/CSS/fontes/imagens via fetch autenticado na sessão e análise estática do código dos chunks.
+
+## Aviso de segurança
+
+O bundle original do site expõe um token público da Mapbox (`pk.eyJ...`) no chunk do OSINT (nó 16). Por segurança, o GitHub bloqueia pushes com esse padrão, então ele foi redigido neste espelho (`REDACTED_MAPBOX_PUBLIC_TOKEN`). O mapa do painel OSINT não funciona no espelho estático de qualquer forma. No site oficial, tokens públicos no frontend são visíveis para qualquer visitante — se esse token for sensível, considere rotacioná-lo no painel da Mapbox.

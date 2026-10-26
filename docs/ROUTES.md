@@ -68,3 +68,32 @@ Ferramentas:
 
 Comercial:
 - `/api/stripe/portal`, `/api/admin/accounts`, `/api/admin/influencer`, `/api/conversations/config`, `/api/conversations/migrate`
+
+## Componentes de rota lazy (nodes do SvelteKit)
+
+Os bundles mapeiam 22 nós de rota (0-21), carregados sob demanda. Identificação pelo conteúdo:
+
+| Node | Página identificada |
+|---|---|
+| 4 | About: "O que é a SKYNETchat" (voltar para `/?drawer=open`) |
+| 5 | Painel de saques de afiliado (saldo, chave Pix, histórico de saques) |
+| 6 | Painel exclusivo para influenciadores |
+| 9 | Pagamento via PIX (Gerando PIX, Tentar novamente) |
+| 10 | OSINT: localização (País, Estado, Cidade) |
+| 11 | Métricas de afiliado/influenciador |
+| 12 | Página promocional GTA 6 (usa `gta-vi.png`) |
+| 13 | Recuperação de conta (Código de acesso, "continue com uma conta individual") |
+| 14 | Countdown promocional (horas, minutos, segundos) |
+| 16 | OSINT: buscas populares, cruzando dados, Brasil |
+| 17 | Confirmação de cadastro (email enviado) |
+| 18 | Login com código de acesso |
+| 19 | Política de Privacidade / Domínio oficial |
+| 20 | Atualizações / Conversas em grupo (entrar em uma sala) |
+| 21 | Componente com gráfico/análise numérica |
+
+## Observações técnicas
+
+- A home abre painéis via query `?drawer=open` (drawer lateral com gesto)
+- Login/cadastro usam Cloudflare Turnstile e "código de acesso" (email com código, não senha)
+- Pagamentos: PIX (BR) e Stripe (portal internacional)
+- Proteção Cloudflare ativa no site oficial (o espelho não precisa dela)
