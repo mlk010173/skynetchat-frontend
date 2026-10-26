@@ -97,3 +97,31 @@ Os bundles mapeiam 22 nós de rota (0-21), carregados sob demanda. Identificaç�
 - Login/cadastro usam Cloudflare Turnstile e "código de acesso" (email com código, não senha)
 - Pagamentos: PIX (BR) e Stripe (portal internacional)
 - Proteção Cloudflare ativa no site oficial (o espelho não precisa dela)
+
+## Dicionário definitivo de rotas (SvelteKit, extraído do bundle)
+
+```
+/            → home
+/about       → sobre
+/affiliate-panel → painel do afiliado (login)
+/afiliado    → programa de afiliados (página pública)
+/api/session → endpoint de sessão (401 sem login)
+/chat/[conversationId] → conversa (login)
+/checkout    → checkout (login)
+/dev-panel   → painel dev (403 sem login)
+/dev/security → login oculto SECURE (código de 12 dígitos, E2E/AES-256/zero-trust)
+/indique-ganhe → indique e ganhe (login)
+/login       → login com código de acesso
+/monetize    → monetização (login)
+/novo        → novo (login)
+/politicos   → Investigar Políticos (OSINT eleitoral, dados TSE, público)
+/recovery    → recuperação de conta
+/sign-up     → cadastro
+/termos      → termos de uso
+/v3          → landing v3 (login)
+/voz         → voz (login)
+```
+
+Rotas públicas renderizáveis no espelho: `/`, `/about`, `/afiliado`, `/politicos`,
+`/login`, `/sign-up`, `/recovery`, `/termos`, `/dev/security`.
+As demais exigem sessão e retornam o shell do app no espelho.
