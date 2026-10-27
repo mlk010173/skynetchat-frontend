@@ -21,6 +21,26 @@
   var base = m ? "/" + m[1] : "";
   var resto = p.slice(base.length) || "/";
   var busca = location.search || "";
+
+  /* clone novo: /<base>/clone-2026-10-27/<rota> — reencaminha dentro da propria pasta */
+  var cl = resto.match(/^\/clone-2026-10-27(\/.*)?$/);
+  if (cl) {
+    var pre = base + "/clone-2026-10-27";
+    var dentro = cl[1] || "/";
+    var c = dentro.match(/^\/chat\/([^\/?#]+)/);
+    if (c) {
+      var extraC = busca && busca !== "?" ? "&" + busca.slice(1) : "";
+      location.replace(pre + "/chat/?conv=" + encodeURIComponent(c[1]) + extraC);
+      return;
+    }
+    if (/^\/(about|login|novo|politicos|monetize|checkout|afiliado|recovery|sign-up|termos)(\/|$)/.test(dentro)) {
+      location.replace(pre + dentro.replace(/\/?$/, "/") + busca);
+      return;
+    }
+    location.replace(pre + "/" + busca);
+    return;
+  }
+
   var alvo = base + "/";
   var chat = resto.match(/^\/chat\/([^\/?#]+)/);
   if (chat) {

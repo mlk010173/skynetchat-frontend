@@ -19,16 +19,19 @@
     return setAttr.call(this, nome, valor);
   };
 
-  ["src", "href"].forEach(function (prop) {
-    try {
-      var desc = Object.getOwnPropertyDescriptor(HTMLElement.prototype, prop);
-      if (!desc || !desc.set) return;
-      Object.defineProperty(HTMLElement.prototype, prop, {
-        configurable: true,
-        get: desc.get,
-        set: function (v) { return desc.set.call(this, corrige(v)); }
-      });
-    } catch (e) {}
+  [HTMLImageElement, HTMLScriptElement, HTMLLinkElement, HTMLSourceElement,
+   HTMLVideoElement, HTMLAudioElement, HTMLIFrameElement].forEach(function (tipo) {
+    ["src", "href", "poster"].forEach(function (prop) {
+      try {
+        var desc = Object.getOwnPropertyDescriptor(tipo.prototype, prop);
+        if (!desc || !desc.set) return;
+        Object.defineProperty(tipo.prototype, prop, {
+          configurable: true,
+          get: desc.get,
+          set: function (v) { return desc.set.call(this, corrige(v)); }
+        });
+      } catch (e) {}
+    });
   });
 
   function varre(raiz) {
@@ -61,10 +64,6 @@
     window.fetch = function (entrada, init) {
       var url = typeof entrada === "string" ? entrada : (entrada && entrada.url) || "";
       var caminho = url.replace(location.origin, "");
-      if (/\/__data\.json/.test(caminho)) {
-        return Promise.resolve(new Response(JSON.stringify({ type: "data", nodes: [null, null] }),
-          { status: 200, headers: { "content-type": "application/json" } }));
-      }
       if (/^\/api\//.test(caminho) && caminho.indexOf("/api/chat") !== 0) {
         return Promise.resolve(new Response("{}", { status: 200, headers: { "content-type": "application/json" } }));
       }
