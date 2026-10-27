@@ -42,3 +42,35 @@ memoryEnabled, canPublish, shouldShowRecoveryPrompt, shouldShowInitialFeedback`.
 | `/termos/` | termos e privacidade |
 
 Galeria navegável: `/demo/`.
+
+
+## Comportamento do chat (reproduzido)
+
+O chat do espelho envia pelo mesmo caminho do app: `POST /api/chat-V3` com
+`{messages:[{id,role,parts:[{type:"text",text}]}], isVoice, projectId}` e lê a
+resposta como **SSE** (`data: {json}` por linha, terminando em `data: [DONE]`).
+
+Eventos que a interface entende:
+
+| Evento | Efeito na UI |
+|---|---|
+| `thinking-meta` `{summaryTitle}` | cria o bloco de pensamento ("Pensando") |
+| `step-start` `{stepId, stepType, searchQueries}` | abre uma etapa (thinking/search) |
+| `step-delta` `{stepId, delta}` | escreve o texto da etapa |
+| `step-end` `{stepId, title}` | fecha a etapa com título ("Pesquisar na web") |
+| `text-start` / `text-delta` `{id, delta}` / `text-end` | resposta em streaming |
+| `finish` / `[DONE]` | encerra |
+
+### Barra de ações da mensagem (original, preservada)
+
+`Copiar`, `Editar`, `Compartilhar`, `Ouvir`, `Reescrever`, `Útil`, `Não útil`,
+`Mais ações` — aparecem no hover da mensagem.
+
+## Correções aplicadas no espelho
+
+1. Imagens ausentes baixadas: `politicos/{lula,nikolas,tarcisio,bolsonaro}.jpg`,
+   `pwa-icon-any-192/512-v2.png`.
+2. `/skynet-logo-vermelha.png` reescrito para o prefixo do Pages dentro do bundle.
+3. Manifest PWA com ícones no caminho correto.
+4. Scripts do Cloudflare (`cdn-cgi/challenge-platform`, `email-decode`) neutralizados.
+5. Página `/quota` removida (renderizava fora do base do SvelteKit).
