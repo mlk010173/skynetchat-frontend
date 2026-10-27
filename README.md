@@ -38,3 +38,14 @@ Navegação real no Chromium (passando pelo desafio Cloudflare), extração do D
 ## Aviso de segurança
 
 O bundle original do site expõe um token público da Mapbox (`pk.eyJ...`) no chunk do OSINT (nó 16). Por segurança, o GitHub bloqueia pushes com esse padrão, então ele foi redigido neste espelho (`REDACTED_MAPBOX_PUBLIC_TOKEN`). O mapa do painel OSINT não funciona no espelho estático de qualquer forma. No site oficial, tokens públicos no frontend são visíveis para qualquer visitante — se esse token for sensível, considere rotacioná-lo no painel da Mapbox.
+
+
+## Modo demo (todas as rotas)
+
+O espelho roda com **sessão simulada** para as telas protegidas renderizarem:
+`demo/mock.js` intercepta as APIs e o layout recebe um usuário demo (Pro/Admin).
+Galeria navegável com as 17 rotas: `demo/index.html`.
+Detalhes técnicos em `docs/UI-STATES.md`.
+
+Nenhuma credencial real, nenhum dado de conta real e nenhuma chamada ao backend
+de produção — é interface estática com dados fictícios.
