@@ -74,3 +74,15 @@ Eventos que a interface entende:
 3. Manifest PWA com ícones no caminho correto.
 4. Scripts do Cloudflare (`cdn-cgi/challenge-platform`, `email-decode`) neutralizados.
 5. Página `/quota` removida (renderizava fora do base do SvelteKit).
+
+## Login, visões e linha de pensamento
+
+- **Login/criar conta**: qualquer entrada autentica. Na tela `/login/` o botão
+  ENTRAR fica sempre habilitado e leva ao chat já como conta PRO.
+- **Visões de teste**: seletor no canto inferior direito (`?as=pro|admin|dev|free|guest|novo|anon`).
+  Guest e novo mostram o upsell "Assinar SKYNETchat PRO"; admin acessa `/api/admin`.
+- **Linha de pensamento**: durante a resposta aparece "Pensando"/"Pesquisa concluída" e,
+  ao terminar, fica um painel fixo "Pensou por 4s · 5 etapas" com cada etapa, a ferramenta
+  usada, o que foi pensado, o que concluiu e o que falhou (marcado em vermelho).
+- **Menu**: itens Investigar Políticos, Planos PRO e Termos de uso foram adicionados ao
+  menu lateral, navegando para as rotas correspondentes.

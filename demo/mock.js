@@ -1,80 +1,203 @@
-/* MODO DEMO — espelho estático do SKYNETchat.
-   Simula sessão/API para as telas protegidas renderizarem interface com dados fictícios.
-   Nenhum dado real de conta é usado. */
+/* MODO DEMO — espelho estatico do SKYNETchat.
+   Simula sessao/API para a interface renderizar com dados ficticios.
+   Nenhum dado real de conta e usado. */
 (function () {
-  var DEMO_USER = {
-    id: "demo-0000-0000-0000-000000000001",
-    email: "convidado@demo.local",
-    name: "Convidado",
-    plan: "pro",
-    role: "admin",
-    credits: 9999,
-    created_at: "2026-01-01T00:00:00Z"
-  };
   var orig = window.fetch ? window.fetch.bind(window) : null;
   if (!orig) return;
-  function json(obj, status) {
+
+  function persona() {
+    try { return window.__sky_persona ? window.__sky_persona() : { user: {} }; }
+    catch (e) { return { user: {} }; }
+  }
+  function json(obj, status, headers) {
     return new Response(JSON.stringify(obj), {
       status: status || 200,
-      headers: { "Content-Type": "application/json" }
+      headers: Object.assign({ "Content-Type": "application/json" }, headers || {})
     });
   }
+
+  /* ---- limpa estado antigo de conversa (evita travar em mensagem corrompida) ---- */
+  (function limpar() {
+    try {
+      var forcar = /[?&]fresh=/.test(location.search);
+      if (sessionStorage.getItem("sky_clean") === "4" && !forcar) return;
+      sessionStorage.setItem("sky_clean", "4");
+      try { sessionStorage.removeItem("sveltekit:snapshot"); } catch (e) {}
+      if (window.indexedDB && indexedDB.deleteDatabase) indexedDB.deleteDatabase("skynetchat");
+    } catch (e) {}
+  })();
+
+  /* ---- linhas de pensamento usadas no stream ---- */
+  var PASSOS = [
+    { tipo: "thinking", titulo: "Interpretar pedido", texto: "Entendi o pedido e vou decidir quais ferramentas usar." },
+    { tipo: "search", titulo: "Pesquisar na web", texto: "Buscando fontes na web...", queries: ["skynetchat 4.5", "politicos TSE"] },
+    { tipo: "thinking", titulo: "Abrir painel de politicos", texto: "Chamando ferramenta abrir_painel_politicos (TSE, Camara, Senado)." },
+    { tipo: "thinking", titulo: "Falhou: API de doacoes", texto: "A API de doacoes eleitorais nao respondeu; sigo com dados publicos.", erro: true },
+    { tipo: "thinking", titulo: "Montar resposta", texto: "Cruzando o que foi encontrado e montando a resposta final." }
+  ];
+
+  function sse(eventos, aoTerminar) {
+    return new Response(new ReadableStream({
+      start: function (ctrl) {
+        var enc = new TextEncoder(), i = 0;
+        function tick() {
+          if (i >= eventos.length) {
+            try { ctrl.enqueue(enc.encode("data: [DONE]\n\n")); ctrl.close(); } catch (e) {}
+            if (aoTerminar) setTimeout(aoTerminar, 600);
+            return;
+          }
+          try { ctrl.enqueue(enc.encode("data: " + JSON.stringify(eventos[i++]) + "\n\n")); } catch (e) { return; }
+          setTimeout(tick, 380);
+        }
+        tick();
+      }
+    }), { status: 200, headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache" } });
+  }
+
   window.fetch = function (input, init) {
     var url = typeof input === "string" ? input : (input && input.url) || "";
-    var method = (init && init.method) || (input && input.method) || "GET";
     var p = url.split("?")[0];
-    var isApi = p.indexOf("/api/") !== -1;
-    if (!isApi) return orig(input, init);
-    if (p.endsWith("/api/session")) return Promise.resolve(json({ user: DEMO_USER }));
+    if (p.indexOf("/api/") === -1) return orig(input, init);
+
+    if (p.endsWith("/api/session")) return Promise.resolve(json({ user: persona().user }));
     if (p.endsWith("/api/preferences")) return Promise.resolve(json({ theme: "black", model: "skynet-v4" }));
     if (p.indexOf("/api/conversations/config") !== -1)
       return Promise.resolve(json({ models: [{ id: "skynet-v4", name: "SKYNET V4" }] }));
+
+    if (p.indexOf("/api/auth") !== -1 || p.indexOf("/api/login") !== -1 || p.indexOf("/api/signup") !== -1 || p.indexOf("/api/verify") !== -1) {
+      if (window.__sky_setPersona) setTimeout(function () { window.__sky_setPersona("pro"); }, 300);
+      return Promise.resolve(json({ ok: true, success: true, token: "demo-token", user: persona().user }));
+    }
+
+    if (p.indexOf("/api/admin") !== -1) {
+      var u = persona().user || {};
+      if (!u.isAdmin) return Promise.resolve(json({ error: "forbidden", message: "Acesso restrito a administradores" }, 403));
+      return Promise.resolve(json({ ok: true, items: [] }));
+    }
+
     if (p.indexOf("/api/chat") !== -1) {
-      var ev2 = [
-        { type: "start", messageId: "demo-msg-1" },
-        { type: "thinking-meta", summaryTitle: "Pensando" },
-        { type: "step-start", stepId: "s1", stepType: "thinking" },
-        { type: "step-delta", stepId: "s1", delta: "Interpretando o pedido e separando o que e pergunta do que e contexto." },
-        { type: "step-end", stepId: "s1", title: "Interpretar pedido" },
-        { type: "step-start", stepId: "s2", stepType: "search", searchQueries: ["skynetchat 4.5", "linha de pensamento"] },
-        { type: "step-delta", stepId: "s2", delta: "Consultando fontes e cruzando as informacoes." },
-        { type: "step-end", stepId: "s2", title: "Pesquisar na web" },
-        { type: "step-start", stepId: "s3", stepType: "thinking" },
-        { type: "step-delta", stepId: "s3", delta: "Organizando a resposta final." },
-        { type: "step-end", stepId: "s3", title: "Montar resposta" },
-        { type: "start-step" },
-        { type: "reasoning-start", id: "r1" },
-        { type: "reasoning-delta", id: "r1", delta: "Interpretando o pedido e separando pergunta de contexto." },
-        { type: "reasoning-delta", id: "r1", delta: " Consultando fontes na web e cruzando as informacoes." },
-        { type: "reasoning-delta", id: "r1", delta: " Organizando a resposta final." },
-        { type: "reasoning-end", id: "r1" },
-        { type: "text-start", id: "t1" }
-      ];
-      var txt2 = "Esta e uma resposta de demonstracao do espelho estatico.\n\nOs controles reais da mensagem aparecem abaixo: copiar, regenerar, boa resposta, resposta ruim, compartilhar e ouvir. Acima, a linha de pensamento mostra as etapas que o SKYNETchat executa antes de responder.";
-      (txt2.match(/[\s\S]{1,12}/g) || []).forEach(function (c) { ev2.push({ type: "text-delta", id: "t1", delta: c }); });
-      ev2.push({ type: "text-end", id: "t1" }, { type: "finish-step" }, { type: "finish" });
-      var body2 = new ReadableStream({
-        start: function (ctrl) {
-          var enc = new TextEncoder(); var i = 0;
-          function tick() {
-            if (i >= ev2.length) { try { ctrl.enqueue(enc.encode("data: [DONE]\n\n")); ctrl.close(); } catch (x) {} return; }
-            ctrl.enqueue(enc.encode("data: " + JSON.stringify(ev2[i++]) + "\n\n"));
-            setTimeout(tick, i < 10 ? 350 : 35);
-          }
-          tick();
-        }
+      var ev = [{ type: "start", messageId: "demo-msg-1" }, { type: "thinking-meta", summaryTitle: "Pensando" }];
+      PASSOS.forEach(function (ps, n) {
+        ev.push({ type: "step-start", stepId: "s" + n, stepType: ps.tipo });
+        if (ps.queries) ev.push({ type: "step-start", stepId: "s" + n, stepType: ps.tipo, searchQueries: ps.queries });
+        ev.push({ type: "step-delta", stepId: "s" + n, delta: ps.texto });
+        ev.push({ type: "step-end", stepId: "s" + n, title: ps.titulo });
       });
-      return Promise.resolve(new Response(body2, { status: 200, headers: { "Content-Type": "text/event-stream" } }));
+      ev.push({ type: "text-start", id: "t1" });
+      var txt = "Resposta em streaming do espelho.\n\nAcima esta a linha de pensamento: cada etapa, a ferramenta usada, o que ele pensou, o que ia fazer, o que concluiu e o que falhou.";
+      (txt.match(/[\s\S]{1,12}/g) || []).forEach(function (c) { ev.push({ type: "text-delta", id: "t1", delta: c }); });
+      ev.push({ type: "text-end", id: "t1" }, { type: "finish" });
+      return Promise.resolve(sse(ev, pintarPassos));
     }
-    if (p.indexOf("/api/tts") !== -1) return Promise.resolve(new Response(new ArrayBuffer(0), { status: 200 }));
-    if (p.indexOf("/api/affiliate") !== -1)
-      return Promise.resolve(json({ ok: true, balance: 0, referrals: 0, pending: 0, total_earned: 0, withdrawals: [], dashboard: {} }));
-    if (p.indexOf("/api/admin/") !== -1) {
-      if (p.indexOf("stats") !== -1 || p.indexOf("summary") !== -1 || p.indexOf("analytics") !== -1)
-        return Promise.resolve(json({ ok: true, stats: {}, items: [], rows: [], totals: {} }));
-      return Promise.resolve(json({ ok: true, items: [], rows: [], total: 0 }));
-    }
-    // fallback: 200 vazio para as demais rotas de API
-    return Promise.resolve(json({ ok: true, items: [], data: null }));
+
+    if (p.indexOf("/api/tts") !== -1) return Promise.resolve(new Response("", { status: 200 }));
+    if (p.indexOf("/api/politicos") !== -1) return Promise.resolve(json({ results: [] }));
+    return Promise.resolve(json({}));
   };
+
+  /* ---- painel fixo da linha de pensamento (fica na tela depois da resposta) ---- */
+  function pintarPassos() {
+    try {
+      if (document.querySelector("[data-sky-steps]")) return;
+      var alvo = null;
+      var nos = document.querySelectorAll("div,p,span");
+      for (var i = nos.length - 1; i >= 0; i--) {
+        var el = nos[i];
+        if (el.children.length === 0 && /Resposta em streaming/.test(el.textContent || "")) { alvo = el; break; }
+      }
+      if (!alvo) {
+        var t = document.body.innerText || "";
+        if (t.indexOf("Resposta em streaming") === -1) return;
+      }
+      var bolha = alvo;
+      for (var k = 0; k < 6 && bolha && bolha.parentElement; k++) {
+        if (bolha.parentElement.querySelectorAll("[data-sky-steps]").length) break;
+        if (bolha.getBoundingClientRect().width > 320) break;
+        bolha = bolha.parentElement;
+      }
+      if (!bolha || !bolha.parentElement) return;
+      var box = document.createElement("div");
+      box.setAttribute("data-sky-steps", "1");
+      box.style.cssText = "margin:0 0 10px;font:12px/1.5 ui-sans-serif,system-ui;color:#b9b9b9;max-width:760px";
+      var head = document.createElement("div");
+      head.style.cssText = "display:flex;align-items:center;gap:8px;cursor:pointer;color:#e6e6e6;padding:4px 0";
+      head.innerHTML = '<span style="color:#e33">\u25CF</span> Pensou por 4s \u00B7 5 etapas';
+      var corpo = document.createElement("div");
+      corpo.style.cssText = "border-left:1px solid #2b2b2b;margin-left:5px;padding:2px 0 2px 12px;display:none";
+      PASSOS.forEach(function (ps) {
+        var linha = document.createElement("div");
+        linha.style.cssText = "padding:3px 0;display:flex;gap:8px;align-items:flex-start";
+        var marca = ps.erro ? '<span style="color:#e33">\u2715</span>' : '<span style="color:#2ea043">\u2713</span>';
+        var titulo = ps.erro ? '<span style="color:#e33">' + ps.titulo + "</span>" : '<span style="color:#ddd">' + ps.titulo + "</span>";
+        linha.innerHTML = marca + '<div><div>' + titulo + '</div><div style="color:#8a8a8a">' + ps.texto + "</div></div>";
+        corpo.appendChild(linha);
+      });
+      var aviso = document.createElement("div");
+      aviso.style.cssText = "color:#666;padding-top:6px";
+      aviso.textContent = "Controles da mensagem: copiar, editar, compartilhar, ouvir, reescrever, util, nao util, mais acoes.";
+      corpo.appendChild(aviso);
+      head.onclick = function () { corpo.style.display = corpo.style.display === "none" ? "block" : "none"; };
+      box.appendChild(head); box.appendChild(corpo);
+      var pai = bolha.parentElement;
+      pai.insertBefore(box, bolha);
+    } catch (e) {}
+  }
+
+  /* ---- menu: adiciona as secoes que so existiam por URL ---- */
+  function addMenu() {
+    var itens = [
+      ["Investigar Politicos", "Cruze dados de campanha, doacoes e votacoes", "/skynetchat-frontend/politicos/"],
+      ["Planos PRO", "Assine e veja os planos disponiveis", "/skynetchat-frontend/checkout/"],
+      ["Termos de uso", "Politica de privacidade e termos", "/skynetchat-frontend/termos/"]
+    ];
+    var tries = 0;
+    var timer = setInterval(function () {
+      tries++;
+      var modelo = null;
+      var btns = document.querySelectorAll("button");
+      for (var i = 0; i < btns.length; i++) {
+        var t = (btns[i].innerText || "").trim();
+        if (t.indexOf("Monetize") === 0 || t.indexOf("Indique e Ganhe") === 0) { modelo = btns[i]; break; }
+      }
+      if (!modelo) { if (tries > 20) clearInterval(timer); return; }
+      if (document.querySelector("[data-sky-extra]")) { clearInterval(timer); return; }
+      var pai = modelo.parentElement;
+      itens.forEach(function (it) {
+        var b = modelo.cloneNode(true);
+        b.setAttribute("data-sky-extra", "1");
+        var spans = b.querySelectorAll("span");
+        if (spans.length >= 2) {
+          spans[0].textContent = it[0];
+          if (spans[1]) spans[1].textContent = it[1];
+        } else { b.textContent = it[0]; }
+        b.onclick = function (e) { e.preventDefault(); e.stopPropagation(); location.href = it[2]; };
+        pai.appendChild(b);
+      });
+      clearInterval(timer);
+    }, 500);
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", addMenu);
+  else addMenu();
+
+  /* ---- login / criar conta / recuperacao: qualquer entrada vale como PRO ---- */
+  (function authDemo() {
+    if (!/\/(login|sign-up|recovery|dev\/security)/.test(location.pathname)) return;
+    function entrar() {
+      try { localStorage.setItem("sky_persona", "pro"); } catch (e) {}
+      setTimeout(function () { location.href = "/skynetchat-frontend/"; }, 500);
+    }
+    var timer = setInterval(function () {
+      var btns = [].slice.call(document.querySelectorAll("button"));
+      var b = btns.filter(function (x) { return /ENTRAR|CRIAR|ACESSAR|CONTINUAR|VERIFICAR/i.test(x.innerText || ""); })[0];
+      if (!b) return;
+      if (b.disabled) { b.disabled = false; b.removeAttribute("disabled"); }
+      b.style.opacity = "1";
+      b.style.cursor = "pointer";
+      if (b.getAttribute("data-sky-auth")) return;
+      b.setAttribute("data-sky-auth", "1");
+      b.addEventListener("click", function (e) { e.preventDefault(); e.stopPropagation(); entrar(); }, true);
+    }, 400);
+    document.addEventListener("submit", function (e) { e.preventDefault(); entrar(); }, true);
+    setTimeout(function () { clearInterval(timer); }, 30000);
+  })();
 })();
